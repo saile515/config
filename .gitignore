@@ -1,0 +1,13 @@
+/*
+!/.gitignore
+
+!/nvim
+
+!/kitty
+
+!/sway
+
+!/zsh
+/zsh/.zcompdump*
+/zsh/.zsh_history
+/zsh/.oh-my-zsh
