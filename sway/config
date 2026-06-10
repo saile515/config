@@ -13,6 +13,11 @@ input type:touchpad {
     middle_emulation disabled
 }
 
+input type:keyboard {
+    xkb_layout us,se
+    xkb_options grp:win_space_toggle
+}
+
 bindsym $mod+Return exec $term
 bindsym $mod+Shift+q kill
 bindsym $mod+d exec $menu
