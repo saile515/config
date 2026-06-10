@@ -10,4 +10,4 @@
 !/zsh
 /zsh/.zcompdump*
 /zsh/.zsh_history
-/zsh/.oh-my-zsh
+/zsh/ohmyzsh
