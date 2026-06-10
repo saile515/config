@@ -93,7 +93,7 @@ bindsym --locked XF86MonBrightnessUp exec brightnessctl set 5%+
 
 bar {
     position top
-    status_command while date +'%Y-%m-%d %X'; do sleep 1; done
+    status_command while $HOME/.config/sway/status.sh; do sleep 1; done
     colors {
         statusline #ffffff
         background #323232
