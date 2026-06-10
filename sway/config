@@ -86,8 +86,6 @@ bindsym --locked XF86AudioStop exec playerctl stop
 bindsym --locked XF86MonBrightnessDown exec brightnessctl set 5%-
 bindsym --locked XF86MonBrightnessUp exec brightnessctl set 5%+
 
-bindsym Print exec grim
-
 bar {
     position top
     status_command while date +'%Y-%m-%d %X'; do sleep 1; done
@@ -97,5 +95,8 @@ bar {
         inactive_workspace #32323200 #32323200 #5c5c5c
     }
 }
+
+bindswitch --locked lid:on exec swaylock --daemonize && systemctl sleep
+exec swayidle -w timeout 300 'swaylock --daemonize && systemctl sleep'
 
 include /etc/sway/config.d/*

@@ -1,0 +1,56 @@
+# swaylock config — tuigreet-inspired theme
+# Place at ~/.config/swaylock/config
+
+# ── Background ──────────────────────────────────────────────
+# Deep terminal black, matching tuigreet's default bg
+color=0d0d0dff
+
+# ── Ring (the circular indicator) ───────────────────────────
+# Idle: muted border color like tuigreet's box outline
+ring-color=4a4a5aff
+
+# Typing: tuigreet accent (cyan/teal)
+key-hl-color=5fd7d7ff
+ring-ver-color=5fd7d7ff
+
+# Wrong password: soft red
+ring-wrong-color=d75f5fff
+bs-hl-color=d75f5fff
+
+# Cleared / success
+ring-clear-color=4a4a5aff
+
+# ── Inside fill ─────────────────────────────────────────────
+inside-color=0d0d0dff
+inside-ver-color=0d0d0dff
+inside-wrong-color=0d0d0dff
+inside-clear-color=0d0d0dff
+
+# ── Separator ───────────────────────────────────────────────
+separator-color=00000000
+
+# ── Line (between ring and inside) ──────────────────────────
+line-color=00000000
+line-ver-color=00000000
+line-wrong-color=00000000
+line-clear-color=00000000
+
+# ── Text ────────────────────────────────────────────────────
+text-color=c8c8d4ff
+text-ver-color=5fd7d7ff
+text-wrong-color=d75f5fff
+text-clear-color=4a4a5aff
+
+# ── Layout / font ───────────────────────────────────────────
+font=monospace
+font-size=14
+
+# ── Indicator geometry ──────────────────────────────────────
+# Thinner ring to feel more like a TUI widget than a big graphic
+indicator-radius=40
+indicator-thickness=4
+indicator-idle-visible
+
+# ── Misc ────────────────────────────────────────────────────
+ignore-empty-password
+show-failed-attempts
