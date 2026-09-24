@@ -30,6 +30,8 @@ bindsym $mod+Shift+$left move left
 bindsym $mod+Shift+$down move down
 bindsym $mod+Shift+$up move up
 bindsym $mod+Shift+$right move right
+bindsym $mod+Tab workspace next
+bindsym $mod+Shift+Tab workspace prev
 bindsym $mod+1 workspace number 1
 bindsym $mod+2 workspace number 2
 bindsym $mod+3 workspace number 3
@@ -102,6 +104,8 @@ bar {
 }
 
 bindswitch --locked lid:on exec swaylock --daemonize && systemctl sleep
-exec swayidle -w timeout 300 'swaylock --daemonize && systemctl sleep'
+exec swayidle -w timeout 600 'swaylock --daemonize && systemctl sleep'
+
+default_border none
 
 include /etc/sway/config.d/*

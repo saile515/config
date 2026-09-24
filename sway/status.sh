@@ -6,6 +6,6 @@ cpu=$(vmstat 1 2 | tail -1 | awk '{print 100 - $15}')%
 
 ram=$(free -m | awk '/^Mem:/ {printf "%.1f%%", $3/$2 * 100}')
 
-battery=$(acpi -b | awk '{print $NF}')
+battery=$(acpi -b | grep -oE '[0-9]+%')
 
 echo "Battery: $battery | CPU: $cpu | RAM: $ram | $date"
