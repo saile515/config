@@ -4,7 +4,6 @@ set $down j
 set $up k
 set $right l
 set $term kitty
-set $menu rofi -show run
 
 exec_always {
     export GTK_THEME="Adwaita:dark"
@@ -25,7 +24,8 @@ input type:keyboard {
 
 bindsym $mod+Return exec $term
 bindsym $mod+Shift+q kill
-bindsym $mod+d exec $menu
+bindsym $mod+d exec rofi -show drun
+bindsym $mod+Shift+d exec rofi -show run
 bindsym $mod+Shift+c reload
 bindsym $mod+$left focus left
 bindsym $mod+$down focus down
