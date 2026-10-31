@@ -7,8 +7,11 @@
 !/kitty
 
 !/sway
+/sway/local
 
 !/swaylock
+
+!/rofi
 
 !/zsh
 /zsh/.zcompdump*

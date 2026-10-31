@@ -6,6 +6,10 @@ set $right l
 set $term kitty
 set $menu rofi -show run
 
+exec_always {
+    export GTK_THEME="Adwaita:dark"
+}
+
 input type:touchpad {
     dwt enabled
     tap enabled
@@ -16,6 +20,7 @@ input type:touchpad {
 input type:keyboard {
     xkb_layout us,se
     xkb_options grp:win_space_toggle
+    xkb_options caps:escape
 }
 
 bindsym $mod+Return exec $term
@@ -54,15 +59,8 @@ bindsym $mod+Shift+9 move container to workspace number 9
 bindsym $mod+Shift+0 move container to workspace number 10
 bindsym $mod+b splith
 bindsym $mod+v splitv
-bindsym $mod+s layout stacking
-bindsym $mod+w layout tabbed
-bindsym $mod+e layout toggle split
 bindsym $mod+f fullscreen
-bindsym $mod+Shift+space floating toggle
-bindsym $mod+space focus mode_toggle
-bindsym $mod+a focus parent
-bindsym $mod+Shift+minus move scratchpad
-bindsym $mod+minus scratchpad show
+bindsym $mod+r mode "resize"
 
 mode "resize" {
     bindsym $left resize shrink width 10px
@@ -76,8 +74,6 @@ mode "resize" {
     bindsym Return mode "default"
     bindsym Escape mode "default"
 }
-
-bindsym $mod+r mode "resize"
 
 bindsym --locked XF86AudioMute exec pactl set-sink-mute \@DEFAULT_SINK@ toggle
 bindsym --locked XF86AudioLowerVolume exec pactl set-sink-volume \@DEFAULT_SINK@ -5%
@@ -98,7 +94,7 @@ bar {
     status_command while $HOME/.config/sway/status.sh; do sleep 1; done
     colors {
         statusline #ffffff
-        background #323232
+        background #000000
         inactive_workspace #32323200 #32323200 #5c5c5c
     }
 }
@@ -109,3 +105,4 @@ exec swayidle -w timeout 600 'swaylock --daemonize && systemctl sleep'
 default_border none
 
 include /etc/sway/config.d/*
+include ./local
