@@ -24,6 +24,7 @@ return {
 		dependencies = { "mason-org/mason.nvim", "neovim/nvim-lspconfig" },
 		opts = {
 			ensure_installed = { "clangd", "ts_ls", "lua_ls", "roslyn_ls" },
+			automatic_enable = { "clangd", "ts_ls", "lua_ls", "roslyn_ls" },
 		},
 	},
 	{
@@ -68,6 +69,8 @@ return {
 	},
 	{
 		"nvim-telescope/telescope.nvim",
+		dependencies = { "nvim-lua/plenary.nvim" },
+		opts = {},
 	},
 	{
 		"esmuellert/codediff.nvim",
@@ -75,5 +78,63 @@ return {
 	},
 	{
 		"nvim-treesitter/nvim-treesitter",
+		branch = "main",
+		lazy = false,
+		build = ":TSUpdate",
+		config = function()
+			require("nvim-treesitter").setup()
+			require("nvim-treesitter").install({
+				"bash",
+				"c",
+				"cpp",
+				"c_sharp",
+				"css",
+				"html",
+				"javascript",
+				"json",
+				"lua",
+				"markdown",
+				"markdown_inline",
+				"query",
+				"toml",
+				"tsx",
+				"typescript",
+				"vim",
+				"vimdoc",
+				"yaml",
+			})
+			vim.treesitter.language.register("bash", { "sh" })
+			vim.treesitter.language.register("c_sharp", { "cs" })
+			vim.treesitter.language.register("javascript", { "javascriptreact" })
+			vim.treesitter.language.register("tsx", { "typescriptreact" })
+
+			vim.api.nvim_create_autocmd("FileType", {
+				pattern = {
+					"bash",
+					"c",
+					"cpp",
+					"cs",
+					"css",
+					"html",
+					"javascript",
+					"javascriptreact",
+					"json",
+					"lua",
+					"markdown",
+					"query",
+					"sh",
+					"toml",
+					"tsx",
+					"typescript",
+					"typescriptreact",
+					"vim",
+					"vimdoc",
+					"yaml",
+				},
+				callback = function(ev)
+					vim.treesitter.start(ev.buf)
+				end,
+			})
+		end,
 	},
 }
