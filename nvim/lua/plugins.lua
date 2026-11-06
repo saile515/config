@@ -17,19 +17,26 @@ return {
 	{ "neovim/nvim-lspconfig" },
 	{
 		"mason-org/mason.nvim",
-		opts = {
-			ensure_installed = {
-				"cspell",
-				"prettierd",
-				"stylua",
-				"clang-format",
-			},
-		},
+		opts = {},
 	},
 	{
 		"mason-org/mason-lspconfig.nvim",
+		dependencies = { "mason-org/mason.nvim", "neovim/nvim-lspconfig" },
 		opts = {
-			ensure_installed = { "clangd", "ts_ls", "lua_ls" },
+			ensure_installed = { "clangd", "ts_ls", "lua_ls", "roslyn_ls" },
+		},
+	},
+	{
+		"WhoIsSethDaniel/mason-tool-installer.nvim",
+		dependencies = { "mason-org/mason.nvim" },
+		opts = {
+			ensure_installed = {
+				"cspell",
+				"oxfmt",
+				"stylua",
+				"clang-format",
+			},
+			run_on_start = true,
 		},
 	},
 	{
@@ -39,8 +46,17 @@ return {
 				lua = { "stylua" },
 				cpp = { "clang-format" },
 				c = { "clang-format" },
-				typescript = { "prettierd" },
-				javascript = { "prettierd" },
+				javascript = { "oxfmt" },
+				javascriptreact = { "oxfmt" },
+				typescript = { "oxfmt" },
+				typescriptreact = { "oxfmt" },
+				json = { "oxfmt" },
+				yaml = { "oxfmt" },
+				toml = { "oxfmt" },
+				html = { "oxfmt" },
+				css = { "oxfmt" },
+				markdown = { "oxfmt" },
+				mdx = { "oxfmt" },
 			},
 			format_on_save = {},
 		},

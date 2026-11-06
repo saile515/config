@@ -10,6 +10,11 @@ vim.lsp.config("*", {
 	end,
 })
 
+vim.lsp.config("roslyn_ls", {
+	cmd = { "roslyn-language-server", "--stdio" },
+})
+vim.lsp.enable("roslyn_ls")
+
 vim.api.nvim_create_autocmd("LspAttach", {
 	callback = function(ev)
 		vim.lsp.completion.enable(true, ev.data.client_id, ev.buf, {
