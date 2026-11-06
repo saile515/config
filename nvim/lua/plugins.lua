@@ -54,6 +54,10 @@ return {
 		"nvim-telescope/telescope.nvim",
 	},
 	{
+		"esmuellert/codediff.nvim",
+		cmd = "CodeDiff",
+	},
+	{
 		"nvim-treesitter/nvim-treesitter",
 	},
 }

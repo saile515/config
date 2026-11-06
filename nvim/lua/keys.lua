@@ -3,6 +3,7 @@ local map = vim.keymap.set
 vim.g.mapleader = " "
 
 map("n", "<leader><space>", ":Telescope find_files<enter>")
+map("n", "<leader>gd", "<cmd>CodeDiff<cr>", { desc = "Open diff" })
 
 map("n", "<C-s>", ":w<enter>")
 map("i", "<C-s>", "<esc>:w<enter>")
