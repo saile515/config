@@ -17,3 +17,5 @@
 /zsh/.zcompdump*
 /zsh/.zsh_history
 /zsh/ohmyzsh
+
+!/yay
