@@ -111,7 +111,10 @@ local function run_prelaunch_task(label, callback)
 				callback(true)
 			else
 				local output = vim.trim((result.stdout or "") .. "\n" .. (result.stderr or ""))
-				callback(false, "preLaunchTask failed (exit " .. result.code .. ")" .. (output ~= "" and ":\n" .. output or ""))
+				callback(
+					false,
+					"preLaunchTask failed (exit " .. result.code .. ")" .. (output ~= "" and ":\n" .. output or "")
+				)
 			end
 		end)
 	end)
@@ -226,7 +229,10 @@ local function js_adapter(dap, adapter_id)
 					local child_session
 					child_session = require("dap.session").connect(adapter_for(child_port), {}, function(err)
 						if err then
-							vim.notify("Could not connect to JavaScript child session: " .. tostring(err), vim.log.levels.ERROR)
+							vim.notify(
+								"Could not connect to JavaScript child session: " .. tostring(err),
+								vim.log.levels.ERROR
+							)
 							return
 						end
 
@@ -366,7 +372,11 @@ function M.run_compound()
 		local selected = {}
 		for _, name in ipairs(compound.configurations or {}) do
 			if not by_name[name] then
-				vim.notify("Compound references unknown configuration: " .. name, vim.log.levels.ERROR, { title = "nvim-dap" })
+				vim.notify(
+					"Compound references unknown configuration: " .. name,
+					vim.log.levels.ERROR,
+					{ title = "nvim-dap" }
+				)
 				return
 			end
 			table.insert(selected, by_name[name])

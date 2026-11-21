@@ -1,3 +1,85 @@
+local languages = require("languages")
+
+function unique(value)
+	local map = {}
+
+	for _, value in ipairs(value) do
+		map[value] = true
+	end
+
+	local result = {}
+
+	for value, _ in pairs(map) do
+		table.insert(result, value)
+	end
+
+	return result
+end
+
+function override(...)
+	local args = { ... }
+	local length = table.getn(args)
+	for i = 1, length + 1 do
+		local value = args[i]
+
+		if value == false then
+			return nil
+		end
+
+		if value ~= nil then
+			return value
+		end
+	end
+
+	return nil
+end
+
+function override_set(...)
+	local keys = { ... }
+	local result = {}
+
+	for lang, opts in pairs(languages) do
+		local values = {}
+
+		for _, key in ipairs(keys) do
+			table.insert(values, opts[key])
+		end
+
+		local value = override(unpack(values), lang)
+
+		if value then
+			table.insert(result, value)
+		end
+	end
+
+	return unique(result)
+end
+
+function concat_tables(...)
+	local tables = { ... }
+	local result = {}
+
+	for _, current_table in ipairs(tables) do
+		local table_length = table.getn(current_table)
+		for i = 1, table_length do
+			table.insert(result, current_table[i])
+		end
+	end
+
+	return result
+end
+
+local formatters = {}
+
+for lang, opts in pairs(languages) do
+	local conform_name = override(opts["conform"], lang)
+	local formatter_name = override(opts["formatter_cli"], opts["formatter"], lang)
+
+	if conform_name and formatter_name then
+		formatters[conform_name] = { formatter_name }
+	end
+end
+
 return {
 	{
 		"dasupradyumna/midnight.nvim",
@@ -14,18 +96,19 @@ return {
 			})
 		end,
 	},
-	{ "neovim/nvim-lspconfig" },
+	{
+		"neovim/nvim-lspconfig",
+		config = function()
+			local lsps = override_set("lsp")
+
+			for _, lsp in ipairs(lsps) do
+				vim.lsp.enable(lsp)
+			end
+		end,
+	},
 	{
 		"mason-org/mason.nvim",
 		opts = {},
-	},
-	{
-		"mason-org/mason-lspconfig.nvim",
-		dependencies = { "mason-org/mason.nvim", "neovim/nvim-lspconfig" },
-		opts = {
-			ensure_installed = { "clangd", "ts_ls", "lua_ls", "roslyn_ls" },
-			automatic_enable = { "clangd", "ts_ls", "lua_ls", "roslyn_ls" },
-		},
 	},
 	{
 		"mfussenegger/nvim-dap",
@@ -40,14 +123,62 @@ return {
 			},
 		},
 		keys = {
-			{ "<F5>", function() require("dap").continue() end, desc = "Debug: continue" },
-			{ "<F9>", function() require("dap").toggle_breakpoint() end, desc = "Debug: toggle breakpoint" },
-			{ "<F10>", function() require("dap").step_over() end, desc = "Debug: step over" },
-			{ "<F11>", function() require("dap").step_into() end, desc = "Debug: step into" },
-			{ "<S-F11>", function() require("dap").step_out() end, desc = "Debug: step out" },
-			{ "<leader>dh", function() require("dap.ui.widgets").hover() end, desc = "Debug: hover" },
-			{ "<leader>dr", function() require("dap").repl.open() end, desc = "Debug: open REPL" },
-			{ "<leader>dt", function() require("dap").terminate() end, desc = "Debug: terminate" },
+			{
+				"<F5>",
+				function()
+					require("dap").continue()
+				end,
+				desc = "Debug: continue",
+			},
+			{
+				"<F9>",
+				function()
+					require("dap").toggle_breakpoint()
+				end,
+				desc = "Debug: toggle breakpoint",
+			},
+			{
+				"<F10>",
+				function()
+					require("dap").step_over()
+				end,
+				desc = "Debug: step over",
+			},
+			{
+				"<F11>",
+				function()
+					require("dap").step_into()
+				end,
+				desc = "Debug: step into",
+			},
+			{
+				"<S-F11>",
+				function()
+					require("dap").step_out()
+				end,
+				desc = "Debug: step out",
+			},
+			{
+				"<leader>dh",
+				function()
+					require("dap.ui.widgets").hover()
+				end,
+				desc = "Debug: hover",
+			},
+			{
+				"<leader>dr",
+				function()
+					require("dap").repl.open()
+				end,
+				desc = "Debug: open REPL",
+			},
+			{
+				"<leader>dt",
+				function()
+					require("dap").terminate()
+				end,
+				desc = "Debug: terminate",
+			},
 			{ "<leader>dC", "<cmd>DapCompound<cr>", desc = "Debug: run compound" },
 		},
 		config = function()
@@ -58,34 +189,14 @@ return {
 		"WhoIsSethDaniel/mason-tool-installer.nvim",
 		dependencies = { "mason-org/mason.nvim" },
 		opts = {
-			ensure_installed = {
-				"cspell",
-				"oxfmt",
-				"stylua",
-				"clang-format",
-			},
-			run_on_start = true,
+			ensure_installed = concat_tables(override_set("formatter"), override_set("lsp_package", "lsp")),
+			auto_update = true,
 		},
 	},
 	{
 		"stevearc/conform.nvim",
 		opts = {
-			formatters_by_ft = {
-				lua = { "stylua" },
-				cpp = { "clang-format" },
-				c = { "clang-format" },
-				javascript = { "oxfmt" },
-				javascriptreact = { "oxfmt" },
-				typescript = { "oxfmt" },
-				typescriptreact = { "oxfmt" },
-				json = { "oxfmt" },
-				yaml = { "oxfmt" },
-				toml = { "oxfmt" },
-				html = { "oxfmt" },
-				css = { "oxfmt" },
-				markdown = { "oxfmt" },
-				mdx = { "oxfmt" },
-			},
+			formatters_by_ft = formatters,
 			format_on_save = {},
 		},
 	},
@@ -115,63 +226,14 @@ return {
 	},
 	{
 		"nvim-treesitter/nvim-treesitter",
-		branch = "main",
 		lazy = false,
+		branch = "main",
 		build = ":TSUpdate",
 		config = function()
-			require("nvim-treesitter").setup()
-			require("nvim-treesitter").install({
-				"bash",
-				"c",
-				"cpp",
-				"c_sharp",
-				"css",
-				"html",
-				"javascript",
-				"json",
-				"lua",
-				"markdown",
-				"markdown_inline",
-				"query",
-				"toml",
-				"tsx",
-				"typescript",
-				"vim",
-				"vimdoc",
-				"yaml",
-			})
-			vim.treesitter.language.register("bash", { "sh" })
-			vim.treesitter.language.register("c_sharp", { "cs" })
-			vim.treesitter.language.register("javascript", { "javascriptreact" })
-			vim.treesitter.language.register("tsx", { "typescriptreact" })
+			local ts = require("nvim-treesitter")
 
-			vim.api.nvim_create_autocmd("FileType", {
-				pattern = {
-					"bash",
-					"c",
-					"cpp",
-					"cs",
-					"css",
-					"html",
-					"javascript",
-					"javascriptreact",
-					"json",
-					"lua",
-					"markdown",
-					"query",
-					"sh",
-					"toml",
-					"tsx",
-					"typescript",
-					"typescriptreact",
-					"vim",
-					"vimdoc",
-					"yaml",
-				},
-				callback = function(ev)
-					vim.treesitter.start(ev.buf)
-				end,
-			})
+			ts.setup({})
+			ts.install(override_set("treesitter"))
 		end,
 	},
 }
