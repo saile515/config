@@ -1,11 +1,9 @@
-local M = {}
-
 local function is_codex_profile()
 	local profile = vim.g.nvim_profile or vim.env.NVIM_PROFILE
 	return profile == "codex"
 end
 
-function M.options()
+local function options()
 	if not is_codex_profile() then
 		return {}
 	end
@@ -20,7 +18,7 @@ function M.options()
 	}
 end
 
-function M.setup(options)
+local function setup(options)
 	require("codediff").setup(options)
 
 	if not is_codex_profile() then
@@ -113,4 +111,11 @@ function M.setup(options)
 	})
 end
 
-return M
+return {
+	"esmuellert/codediff.nvim",
+	cmd = "CodeDiff",
+	opts = options,
+	config = function(_, opts)
+		setup(opts)
+	end,
+}
