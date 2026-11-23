@@ -1,4 +1,5 @@
 local languages = require("languages")
+local codediff = require("config.codediff")
 
 function unique(value)
 	local map = {}
@@ -223,6 +224,10 @@ return {
 	{
 		"esmuellert/codediff.nvim",
 		cmd = "CodeDiff",
+		opts = codediff.options,
+		config = function(_, options)
+			codediff.setup(options)
+		end,
 	},
 	{
 		"nvim-treesitter/nvim-treesitter",
