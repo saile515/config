@@ -1,5 +1,6 @@
 return {
 	"mfussenegger/nvim-dap",
+	lazy = false,
 	dependencies = {
 		{
 			"Joakker/lua-json5",
@@ -11,41 +12,11 @@ return {
 		},
 	},
 	keys = {
-		{
-			"<F5>",
-			function()
-				require("dap").continue()
-			end,
-			desc = "Debug: continue",
-		},
-		{
-			"<F9>",
-			function()
-				require("dap").toggle_breakpoint()
-			end,
-			desc = "Debug: toggle breakpoint",
-		},
-		{
-			"<F10>",
-			function()
-				require("dap").step_over()
-			end,
-			desc = "Debug: step over",
-		},
-		{
-			"<F11>",
-			function()
-				require("dap").step_into()
-			end,
-			desc = "Debug: step into",
-		},
-		{
-			"<S-F11>",
-			function()
-				require("dap").step_out()
-			end,
-			desc = "Debug: step out",
-		},
+		{ "<F5>", "<cmd>DapContinue<cr>", desc = "Debug: continue" },
+		{ "<F9>", "<cmd>DapToggleBreakpoint<cr>", desc = "Debug: toggle breakpoint" },
+		{ "<F10>", "<cmd>DapStepOver<cr>", desc = "Debug: step over" },
+		{ "<F11>", "<cmd>DapStepInto<cr>", desc = "Debug: step into" },
+		{ "<S-F11>", "<cmd>DapStepOut<cr>", desc = "Debug: step out" },
 		{
 			"<leader>dh",
 			function()
@@ -60,13 +31,7 @@ return {
 			end,
 			desc = "Debug: open REPL",
 		},
-		{
-			"<leader>dt",
-			function()
-				require("dap").terminate()
-			end,
-			desc = "Debug: terminate",
-		},
+		{ "<leader>dt", "<cmd>DapTerminate<cr>", desc = "Debug: terminate" },
 		{ "<leader>dC", "<cmd>DapCompound<cr>", desc = "Debug: run compound" },
 	},
 	config = function()

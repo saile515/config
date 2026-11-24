@@ -23,10 +23,6 @@ local function read_json5(path)
 	return value
 end
 
-local function workspace()
-	return vim.fn.getcwd()
-end
-
 local function is_absolute(path)
 	local first = path:sub(1, 1)
 	local drive_path = path:sub(2, 2) == ":" and (path:sub(3, 3) == "/" or path:sub(3, 3) == "\\")
@@ -47,26 +43,49 @@ local function expand_task_value(value, root)
 		end)
 end
 
-local function failed_adapter(message, callback)
+local function notify_error(message)
 	vim.notify(message, vim.log.levels.ERROR, { title = "nvim-dap" })
-	if vim.fn.has("win32") == 1 then
-		callback({ type = "executable", command = "cmd.exe", args = { "/c", "exit", "1" } })
-	else
-		callback({ type = "executable", command = "false", args = {} })
+end
+
+local function shell_args(command)
+	local args = vim.split(vim.o.shellcmdflag, "%s+", { trimempty = true })
+	table.insert(args, command)
+	return args
+end
+
+local function run_process(command, options, name, callback)
+	options.text = true
+	local ok, spawn_error = pcall(
+		vim.system,
+		command,
+		options,
+		vim.schedule_wrap(function(result)
+			if result.code == 0 then
+				callback(vim.trim(result.stdout or ""))
+				return
+			end
+
+			local output = vim.trim((result.stdout or "") .. "\n" .. (result.stderr or ""))
+			local message = name .. " failed (exit " .. result.code .. ")"
+			callback(nil, output == "" and message or (message .. ":\n" .. output))
+		end)
+	)
+	if not ok then
+		callback(nil, tostring(spawn_error))
 	end
 end
 
 local function run_prelaunch_task(label, callback)
 	if not label then
-		callback(true)
+		callback()
 		return
 	end
 
-	local root = workspace()
+	local root = vim.fn.getcwd()
 	local tasks_path = vim.fs.joinpath(root, ".vscode", "tasks.json")
 	local tasks, err = read_json5(tasks_path)
 	if not tasks then
-		callback(false, err)
+		callback(err)
 		return
 	end
 
@@ -78,11 +97,11 @@ local function run_prelaunch_task(label, callback)
 		end
 	end
 	if not task then
-		callback(false, "Task not found in " .. tasks_path .. ": " .. label)
+		callback("Task not found in " .. tasks_path .. ": " .. label)
 		return
 	end
 	if task.type ~= "shell" or type(task.command) ~= "string" then
-		callback(false, "Only shell tasks with a command are supported as preLaunchTask")
+		callback("Only shell tasks with a command are supported as preLaunchTask")
 		return
 	end
 
@@ -92,8 +111,7 @@ local function run_prelaunch_task(label, callback)
 	end
 
 	local shell_command = { vim.o.shell }
-	vim.list_extend(shell_command, vim.split(vim.o.shellcmdflag, "%s+", { trimempty = true }))
-	table.insert(shell_command, command)
+	vim.list_extend(shell_command, shell_args(command))
 
 	local options = task.options or {}
 	local cwd = expand_task_value(options.cwd, root) or root
@@ -105,61 +123,37 @@ local function run_prelaunch_task(label, callback)
 		env[key] = expand_task_value(value, root)
 	end
 
-	vim.system(shell_command, { cwd = cwd, env = env, text = true }, function(result)
-		vim.schedule(function()
-			if result.code == 0 then
-				callback(true)
-			else
-				local output = vim.trim((result.stdout or "") .. "\n" .. (result.stderr or ""))
-				callback(
-					false,
-					"preLaunchTask failed (exit " .. result.code .. ")" .. (output ~= "" and ":\n" .. output or "")
-				)
-			end
-		end)
+	run_process(shell_command, { cwd = cwd, env = env }, "preLaunchTask", function(_, err)
+		callback(err)
 	end)
 end
 
-local function netcoredbg_adapter()
-	local command = vim.fn.exepath("netcoredbg")
-	if command == "" then
-		command = "netcoredbg"
-	end
-	return { type = "executable", command = command, args = { "--interpreter=vscode" } }
-end
-
 local function target_path(project_path, callback)
-	if type(project_path) ~= "string" or project_path == "" then
-		callback(nil, "The .NET launch configuration requires projectPath or program")
-		return
-	end
+	local command = { "dotnet", "msbuild", project_path, "-getProperty:TargetPath" }
+	run_process(command, {}, "dotnet msbuild", function(output, err)
+		if err then
+			callback(nil, err)
+			return
+		end
 
-	project_path = vim.fn.fnamemodify(project_path, ":p")
-	vim.system({ "dotnet", "msbuild", project_path, "-getProperty:TargetPath" }, { text = true }, function(result)
-		vim.schedule(function()
-			if result.code ~= 0 then
-				callback(nil, vim.trim(result.stderr or result.stdout or "dotnet msbuild failed"))
-				return
+		local target = output:match("TargetPath%s*=%s*([^\r\n]+)") or output
+		local decoded, properties = pcall(vim.json.decode, output)
+		if decoded and type(properties) == "table" and type(properties.Properties) == "table" then
+			local property = properties.Properties.TargetPath
+			if type(property) == "string" then
+				target = property
 			end
+		end
+		target = vim.trim(target):gsub('^"(.*)"$', "%1")
+		if target == "" then
+			callback(nil, "Could not determine the .NET project's output path")
+			return
+		end
 
-			local output = vim.trim(result.stdout or "")
-			local target
-			local ok, properties = pcall(vim.json.decode, output)
-			if ok and properties.Properties then
-				target = properties.Properties.TargetPath
-			end
-			target = target or output:match("TargetPath%s*=%s*([^\r\n]+)") or output
-			target = vim.trim(target):gsub('^"(.*)"$', "%1")
-			if target == "" then
-				callback(nil, "Could not determine the .NET project's output path")
-				return
-			end
-
-			if not is_absolute(target) then
-				target = vim.fs.joinpath(vim.fs.dirname(project_path), target)
-			end
-			callback(vim.fn.fnamemodify(target, ":p"))
-		end)
+		if not is_absolute(target) then
+			target = vim.fs.joinpath(vim.fs.dirname(project_path), target)
+		end
+		callback(vim.fn.fnamemodify(target, ":p"))
 	end)
 end
 
@@ -210,72 +204,17 @@ local function apply_launch_settings(config, project_path)
 	end
 end
 
-local function js_adapter(dap, adapter_id)
-	local function adapter_for(port)
-		return {
-			type = "server",
-			host = "127.0.0.1",
-			port = port,
-			id = adapter_id,
-			reverse_request_handlers = {
-				attachedChildSession = function(parent, request)
-					local config = request.arguments.config
-					local child_port = tonumber(config.__jsDebugChildServer)
-					if not child_port then
-						vim.notify("JavaScript debugger did not provide a child-session port", vim.log.levels.ERROR)
-						return
-					end
-
-					local child_session
-					child_session = require("dap.session").connect(adapter_for(child_port), {}, function(err)
-						if err then
-							vim.notify(
-								"Could not connect to JavaScript child session: " .. tostring(err),
-								vim.log.levels.ERROR
-							)
-							return
-						end
-
-						child_session.parent = parent
-						parent.children[child_session.id] = child_session
-						child_session.on_close["debugger.js_child"] = function(session)
-							if session.parent then
-								session.parent.children[session.id] = nil
-								if dap.session() == session then
-									dap.set_session(session.parent)
-								end
-								session.parent = nil
-							end
-						end
-						dap.set_session(child_session)
-						child_session:initialize(config)
-					end)
-				end,
-			},
-		}
-	end
-
-	local adapter = adapter_for("${port}")
-	adapter.executable = {
-		command = "js-debug-adapter",
-		args = { "${port}", "127.0.0.1" },
-	}
-	return adapter
-end
-
 local function configure_node_terminal_adapter(dap)
 	dap.adapters["node-terminal"] = function(callback, config)
 		if config.request ~= "launch" or type(config.command) ~= "string" or config.command == "" then
-			failed_adapter("node-terminal requires a launch request with a command", callback)
+			notify_error("node-terminal requires a launch request with a command")
 			return
 		end
 
-		local shell_args = vim.split(vim.o.shellcmdflag, "%s+", { trimempty = true })
-		table.insert(shell_args, config.command)
 		config.type = "pwa-node"
-		config.command = nil
 		config.runtimeExecutable = vim.o.shell
-		config.runtimeArgs = shell_args
+		config.runtimeArgs = shell_args(config.command)
+		config.command = nil
 		config.program = nil
 		config.args = {}
 		config.console = "integratedTerminal"
@@ -285,66 +224,62 @@ local function configure_node_terminal_adapter(dap)
 end
 
 local function configure_dotnet_adapter(dap)
+	local coreclr = {
+		type = "executable",
+		command = "netcoredbg",
+		args = { "--interpreter=vscode" },
+	}
+
 	dap.adapters.dotnet = function(callback, config)
-		local function start()
-			local function launch(program)
-				if not program then
-					failed_adapter("Could not resolve the .NET launch target", callback)
-					return
-				end
-
-				local project_path = config.projectPath and vim.fn.fnamemodify(config.projectPath, ":p")
-				if project_path then
-					apply_launch_settings(config, project_path)
-				end
-				config.type = "coreclr"
-				config.program = program
-				config.cwd = config.cwd or (project_path and vim.fs.dirname(project_path)) or vim.fs.dirname(program)
-				config.projectPath = nil
-				config.preLaunchTask = nil
-				config.launchConfigurationId = nil
-				config.launchSettingsFilePath = nil
-				config.launchSettingsProfile = nil
-				callback(netcoredbg_adapter())
-			end
-
-			if config.program then
-				launch(config.program)
-			else
-				target_path(config.projectPath, function(program, err)
-					if err then
-						failed_adapter(err, callback)
-					else
-						launch(program)
-					end
-				end)
-			end
+		local project_path = config.projectPath
+		if type(project_path) == "string" and project_path ~= "" then
+			project_path = vim.fn.fnamemodify(project_path, ":p")
+		else
+			project_path = nil
+		end
+		if not config.program and not project_path then
+			notify_error("The .NET launch configuration requires projectPath or program")
+			return
 		end
 
-		run_prelaunch_task(config.preLaunchTask, function(ok, err)
-			if not ok then
-				failed_adapter(err or "preLaunchTask failed", callback)
+		local function launch(program, err)
+			if err then
+				notify_error(err)
 				return
 			end
-			start()
+
+			if project_path then
+				apply_launch_settings(config, project_path)
+			end
+			config.type = "coreclr"
+			config.program = program
+			config.cwd = config.cwd or vim.fs.dirname(project_path or program)
+			config.projectPath = nil
+			config.preLaunchTask = nil
+			config.launchConfigurationId = nil
+			config.launchSettingsFilePath = nil
+			config.launchSettingsProfile = nil
+			callback(coreclr)
+		end
+
+		run_prelaunch_task(config.preLaunchTask, function(err)
+			if err then
+				notify_error(err)
+			elseif config.program then
+				launch(config.program)
+			else
+				target_path(project_path, launch)
+			end
 		end)
 	end
 end
 
-local function load_launch_json()
-	local path = vim.fs.joinpath(workspace(), ".vscode", "launch.json")
-	local launch, err = read_json5(path)
-	if not launch then
-		vim.notify(err, vim.log.levels.ERROR, { title = "nvim-dap" })
-		return nil
-	end
-	return launch
-end
-
 function M.run_compound()
 	local dap = require("dap")
-	local launch = load_launch_json()
+	local path = vim.fs.joinpath(vim.fn.getcwd(), ".vscode", "launch.json")
+	local launch, err = read_json5(path)
 	if not launch then
+		notify_error(err)
 		return
 	end
 
@@ -413,11 +348,18 @@ end
 function M.setup()
 	local dap = require("dap")
 
-	require("mason-nvim-dap").setup({
-		ensure_installed = { "coreclr", "js" },
-	})
+	require("mason-nvim-dap").setup()
 	require("dap.ext.vscode").json_decode = require("json5").parse
-	dap.adapters["pwa-node"] = js_adapter(dap, "pwa-node")
+	dap.adapters["pwa-node"] = {
+		type = "server",
+		host = "127.0.0.1",
+		port = "${port}",
+		id = "pwa-node",
+		executable = {
+			command = "js-debug-adapter",
+			args = { "${port}", "127.0.0.1" },
+		},
+	}
 	configure_node_terminal_adapter(dap)
 	configure_dotnet_adapter(dap)
 	dap.defaults["pwa-node"].terminal_win_cmd = "tabnew"
